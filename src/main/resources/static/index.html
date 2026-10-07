@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>计算器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #ffeaf4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .panel {
+            background-color: #fff5fa;
+            border: 2px solid #ffd1e8;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(255, 182, 193, 0.25);
+        }
+
+        .calc-panel {
+            width: 320px;
+        }
+
+        .history-panel {
+            width: 360px;
+        }
+
+        h3 {
+            text-align: center;
+            color: #d63384;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        #screen {
+            width: 100%;
+            height: 50px;
+            font-size: 24px;
+            text-align: right;
+            padding: 0 12px;
+            border: 2px solid #ffb3dc;
+            border-radius: 10px;
+            background-color: #fff;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .button-area {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            height: 48px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            background-color: #ffc9e7;
+            color: #ad1457;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        button:hover {
+            background-color: #ff9fd6;
+        }
+
+        button:active {
+            background-color: #ff7ac7;
+        }
+
+        .btn-equal {
+            background-color: #ff4f9d;
+            color: #fff;
+        }
+
+        .btn-equal:hover {
+            background-color: #ff2f87;
+        }
+
+        .btn-clear {
+            background-color: #ffaed6;
+        }
+
+        .history-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        #historySearch {
+            flex: 1;
+            height: 40px;
+            border: 2px solid #ffb3dc;
+            border-radius: 8px;
+            padding: 0 10px;
+            font-size: 14px;
+        }
+
+        .history-toolbar button {
+            height: 40px;
+            font-size: 14px;
+            padding: 0 12px;
+        }
+
+        .history-list {
+            background-color: #fff;
+            border: 2px solid #ffd1e8;
+            border-radius: 12px;
+            padding: 12px;
+            height: 320px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 8px 10px;
+            border-bottom: 1px dashed #ffc0df;
+            color: #555;
+            font-size: 15px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            color: #d63384;
+            font-size: 14px;
+        }
+
+        .pagination button {
+            height: 36px;
+            font-size: 14px;
+            padding: 0 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 计算器面板 -->
+    <div class="panel calc-panel">
+        <h3>计算器</h3>
+        <input id="screen" readonly/>
+
+        <div class="button-area">
+            <button onclick="inputAppend('(')">(</button>
+            <button onclick="inputAppend(')')">)</button>
+            <button class="btn-clear" onclick="clearEntry()">CE</button>
+            <button class="btn-clear" onclick="clearScreen()">C</button>
+
+            <button onclick="inputAppend('7')">7</button>
+            <button onclick="inputAppend('8')">8</button>
+            <button onclick="inputAppend('9')">9</button>
+            <button onclick="inputAppend('/')">/</button>
+
+            <button onclick="inputAppend('4')">4</button>
+            <button onclick="inputAppend('5')">5</button>
+            <button onclick="inputAppend('6')">6</button>
+            <button onclick="inputAppend('*')">×</button>
+
+            <button onclick="inputAppend('1')">1</button>
+            <button onclick="inputAppend('2')">2</button>
+            <button onclick="inputAppend('3')">3</button>
+            <button onclick="inputAppend('-')">-</button>
+
+            <button onclick="inputAppend('0')">0</button>
+            <button onclick="inputAppend('.')">.</button>
+            <button class="btn-equal" onclick="calcSubmit()">=</button>
+            <button onclick="inputAppend('+')">+</button>
+        </div>
+    </div>
+
+    <!-- 计算历史面板 -->
+    <div class="panel history-panel">
+        <h3>计算历史</h3>
+
+        <div class="history-toolbar">
+            <input type="text" id="historySearch" placeholder="搜索表达式或结果"/>
+            <button onclick="searchHistory()">搜索</button>
+            <button onclick="clearAllHistory()">清空全部历史</button>
+        </div>
+
+        <div class="history-list" id="historyList"></div>
+
+        <div class="pagination">
+            <button onclick="prevPage()">上一页</button>
+            <span id="pageInfo">第 1 页，共 1 页</span>
+            <button onclick="nextPage()">下一页</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const screen = document.getElementById("screen");
+    const historyList = document.getElementById("historyList");
+    const historySearch = document.getElementById("historySearch");
+    const pageInfo = document.getElementById("pageInfo");
+
+    let allHistory = [];
+    let currentPage = 1;
+    const pageSize = 8;
+    let currentKeyword = "";
+
+    function inputAppend(s) {
+        if (s === '×') {
+            screen.value += '*';
+        } else {
+            screen.value += s;
+        }
+    }
+
+    function clearScreen() {
+        screen.value = "";
+    }
+
+    function clearEntry() {
+        screen.value = screen.value.slice(0, -1);
+    }
+
+    async function calcSubmit() {
+        const expr = screen.value.trim();
+        if (!expr) return;
+
+        try {
+            const res = await fetch("/api/calc", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({expression: expr})
+            });
+
+            const data = await res.json();
+            screen.value = data.result;
+            loadHistory();
+        } catch (err) {
+            screen.value = "请求失败";
+        }
+    }
+
+    async function loadHistory() {
+        try {
+            const resp = await fetch("/api/calc/history");
+            allHistory = await resp.json();
+            currentPage = 1;
+            renderHistory();
+        } catch (err) {
+            historyList.innerHTML = "<p style='color:#999'>加载历史失败</p>";
+        }
+    }
+
+    function renderHistory() {
+        let list = allHistory;
+
+        if (currentKeyword.trim()) {
+            const kw = currentKeyword.trim().toLowerCase();
+            list = allHistory.filter(item =>
+                item.expression.toLowerCase().includes(kw) ||
+                item.result.toLowerCase().includes(kw)
+            );
+        }
+
+        const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * pageSize;
+        const pageData = list.slice(start, start + pageSize);
+
+        historyList.innerHTML = "";
+        if (pageData.length === 0) {
+            historyList.innerHTML = "<p style='color:#999;text-align:center'>暂无记录</p>";
+        } else {
+            pageData.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "history-item";
+                div.textContent = `${item.expression} = ${item.result}`;
+                historyList.appendChild(div);
+            });
+        }
+
+        pageInfo.textContent = `第 ${currentPage} 页，共 ${totalPages} 页`;
+    }
+
+    function searchHistory() {
+        currentKeyword = historySearch.value;
+        currentPage = 1;
+        renderHistory();
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderHistory();
+        }
+    }
+
+    function nextPage() {
+        const totalPages = Math.max(1, Math.ceil(allHistory.length / pageSize));
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderHistory();
+        }
+    }
+
+    function clearAllHistory() {
+        if (confirm("确定清空全部历史吗？")) {
+            allHistory = [];
+            currentKeyword = "";
+            historySearch.value = "";
+            renderHistory();
+        }
+    }
+
+    loadHistory();
+</script>
+
+</body>
+</html>
